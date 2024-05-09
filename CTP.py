@@ -8,6 +8,12 @@ import io
 from PIL import Image, ImageTk
 
 data= pd.DataFrame()
+global a
+global b
+a=1/50
+b=0.2
+
+
 
 class DataVisualizationApp:
     def __init__(self, master):
@@ -64,7 +70,7 @@ class DataVisualizationApp:
         plt.ylabel('Y')
         plt.title('Data Visualization')
         plt.tight_layout()
-        self.ylimits = (data['y'].min(), data['y'].max() + data['y'].std())
+        self.ylimits = (data['y'].min(), (data['y'].max() + data['y'].std())*a)
         for i in range(0, len(data) - 100, 5):
             buffer.truncate(0)  # Clear the buffer
             buffer.seek(0)  # Reset the buffer position
@@ -90,8 +96,7 @@ class DataVisualizationApp:
 
 
     def display_chart_v2(self, data, buffer):
-        a=1/50
-        b=0
+        
         self.canvas.delete("all")  # Clear canvas
         plt.clf()
         plt.plot(data['x'], data['y']*a+b)
