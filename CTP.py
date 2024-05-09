@@ -28,7 +28,7 @@ class DataVisualizationApp:
     
 
     def load_data(self):
-        
+        global data
         file_path = filedialog.askopenfilename(filetypes=[("CSV files", "*.csv")])
         if file_path:
             
@@ -57,9 +57,7 @@ class DataVisualizationApp:
             file_path = filedialog.askopenfilename(filetypes=[("CSV files", "*.csv")])
             if file_path:
                 data = pd.read_csv(file_path)
-        
-        
-
+    
         buffer = io.BytesIO()
         plt.figure(figsize=(6, 4))  # Create the figure outside the loop
         plt.xlabel('X')
@@ -70,7 +68,7 @@ class DataVisualizationApp:
         for i in range(0, len(data) - 100, 5):
             buffer.truncate(0)  # Clear the buffer
             buffer.seek(0)  # Reset the buffer position
-            self.display_chart(data[i:(i + 100)], buffer)
+            self.display_chart_v2(data[i:(i + 100)], buffer)
             self.canvas.update()  # Update the canvas immediately
             time.sleep(0.05)  # Sleep for a short interval
         plt.close()
@@ -89,6 +87,22 @@ class DataVisualizationApp:
         tk_image = ImageTk.PhotoImage(image)
         self.chart_image = tk_image
         self.canvas.create_image(0, 0, anchor=tk.NW, image=self.chart_image)
+
+
+    def display_chart_v2(self, data, buffer):
+        a=1/50
+        b=0
+        self.canvas.delete("all")  # Clear canvas
+        plt.clf()
+        plt.plot(data['x'], data['y']*a+b)
+        plt.ylim(self.ylimits[0], self.ylimits[1])
+        plt.savefig(buffer, format="png")
+        buffer.seek(0)
+        image = Image.open(buffer)
+        tk_image = ImageTk.PhotoImage(image)
+        self.chart_image = tk_image
+        self.canvas.create_image(0, 0, anchor=tk.NW, image=self.chart_image)
+
 
 
 def main():
