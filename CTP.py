@@ -47,13 +47,14 @@ class DataVisualizationApp:
             plt.title('Data Visualization')
             plt.tight_layout()
             self.ylimits = (data['y'].min(), data['y'].max() + data['y'].std())
-
-            for i in range(0, len(data) - 100, 5):
+            while True:
                 buffer.truncate(0)  # Clear the buffer
                 buffer.seek(0)  # Reset the buffer position
-                self.display_chart(data[i:(i + 100)], buffer)
+                self.display_chart_v2(data[i:(i + 100)], buffer)
                 self.canvas.update()  # Update the canvas immediately
                 time.sleep(0.05)  # Sleep for a short interval
+                i=i+5
+                i=i%(len(data) - 100)
 
             plt.close()
 
@@ -71,12 +72,15 @@ class DataVisualizationApp:
         plt.title('Data Visualization')
         plt.tight_layout()
         self.ylimits = (data['y'].min(), (data['y'].max() + data['y'].std())*a)
-        for i in range(0, len(data) - 100, 5):
+        i=0
+        while True:
             buffer.truncate(0)  # Clear the buffer
             buffer.seek(0)  # Reset the buffer position
             self.display_chart_v2(data[i:(i + 100)], buffer)
             self.canvas.update()  # Update the canvas immediately
             time.sleep(0.05)  # Sleep for a short interval
+            i=i+5
+            i=i%(len(data) - 100)
         plt.close()
         
 
