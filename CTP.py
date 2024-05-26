@@ -19,17 +19,17 @@ class DataVisualizationApp:
         self.master = master
         self.master.title("Data Visualization App")
         
-        self.load_button = tk.Button(master, text="Load Data", command=lambda: (self.load_data(),self.compose_chart()))
+        self.load_button = tk.Button(master, text="Load Data", command=lambda: (self.load_data(),self.display_chart()))
         self.load_button.pack(pady=10)
 
-        self.load_button = tk.Button(master, text="Calibrate Sensor", command=lambda: self.compose_chart(1/50))
+        self.load_button = tk.Button(master, text="Calibrate Sensor", command=lambda: self.display_chart(1/50))
         self.load_button.pack(pady=10)
         
         self.canvas = tk.Canvas(master, width=600, height=400)
         self.canvas.pack()
     
     
-    def compose_chart(self, adjustment: int = 1):
+    def display_chart(self, adjustment: int = 1):
         buffer = io.BytesIO()
         plt.figure(figsize=(6, 4))  # Create the figure outside the loop
         plt.xlabel('X')
@@ -44,7 +44,7 @@ class DataVisualizationApp:
         while True:
             buffer.truncate(0)  # Clear the buffer
             buffer.seek(0)  # Reset the buffer position
-            self.display_chart(self.data[i:(i + 100)], buffer, adjustment=adjustment)
+            self.compose_chart(self.data[i:(i + 100)], buffer, adjustment=adjustment)
             self.canvas.update()  # Update the canvas immediately
             time.sleep(0.05)  # Sleep for a short interval
             i=i+5
@@ -55,7 +55,7 @@ class DataVisualizationApp:
         if file_path:
             self.data = pd.read_csv(file_path)
 
-    def display_chart(self, data: DataFrame, buffer, adjustment: int = 1):
+    def compose_chart(self, data: DataFrame, buffer, adjustment: int = 1):
         self.canvas.delete("all")  # Clear canvas
         plt.clf()
         plt.plot(data['x'], data['y'])
