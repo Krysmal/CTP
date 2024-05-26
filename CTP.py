@@ -15,48 +15,60 @@ a=1/50
 b=0.2
 
 class DataVisualizationApp:
+    data: DataFrame
+    tempData = []
+
     def __init__(self, master):
         self.master = master
         self.master.title("Data Visualization App")
-        
-        self.load_button = tk.Button(master, text="Load Data", command=lambda: (self.load_data(),self.display_chart()))
-        self.load_button.pack(pady=10)
 
-        self.load_button = tk.Button(master, text="Calibrate Sensor", command=lambda: self.display_chart(1/50))
-        self.load_button.pack(pady=10)
+        self.button_frame = tk.Frame(master)
+        self.button_frame.pack()
+        
+        self.load_button = tk.Button(self.button_frame, text="Load Data", command=lambda: (self.load_data(),self.display_chart(self.data, canvas=self.canvas)))
+        self.load_button.grid(row=0, column=0, columnspan=2)
+
+        self.calibrate_button = tk.Button(self.button_frame, text="Calibrate Sensor", command=lambda: self.display_chart(self.data,canvas=self.canvas, adjustment=1/50))
+        self.calibrate_button.grid(row=1,column=0)
+
+        self.count_impulses_button = tk.Button(self.button_frame, text="Count impulses", command=lambda: self.count_signals_button_callback())
+        self.count_impulses_button.grid(row=1, column=1)
         
         self.canvas = tk.Canvas(master, width=600, height=400)
         self.canvas.pack()
+
+        self.secondChart = tk.Canvas(master, width=600, height=400)
+        self.secondChart.pack()
     
     
-    def display_chart(self, adjustment: int = 1):
+    def display_chart(self, data: DataFrame, canvas,  adjustment: int = 1):
         buffer = io.BytesIO()
-        plt.figure(figsize=(6, 4))  # Create the figure outside the loop
+        plt.figure(figsize=(6, 4))
         plt.xlabel('X')
         plt.ylabel('Y')
         plt.title('VRVT190 - indukcyjny')
         plt.tight_layout()
+        data['y'] = data['y']*adjustment
 
-        self.data['y'] = self.data['y']*adjustment
 
-        self.ylimits = (self.data['y'].min(), self.data['y'].max() + self.data['y'].std())
+        self.ylimits = (data['y'].min(), data['y'].max() + data['y'].std())
         i = 0
         while True:
-            buffer.truncate(0)  # Clear the buffer
-            buffer.seek(0)  # Reset the buffer position
-            self.compose_chart(self.data[i:(i + 100)], buffer, adjustment=adjustment)
-            self.canvas.update()  # Update the canvas immediately
-            time.sleep(0.05)  # Sleep for a short interval
+            buffer.truncate(0)
+            buffer.seek(0) 
+            self.compose_chart(data[i:(i + 100)], buffer, canvas)
+            canvas.update()
+            time.sleep(0.05)
             i=i+5
-            i=i%(len(self.data) - 100)
+            i=i%(len(data) - 100)
         
     def load_data(self):
         file_path = filedialog.askopenfilename(filetypes=[("CSV files", "*.csv")])
         if file_path:
             self.data = pd.read_csv(file_path)
 
-    def compose_chart(self, data: DataFrame, buffer, adjustment: int = 1):
-        self.canvas.delete("all")  # Clear canvas
+    def compose_chart(self, data: DataFrame, buffer, canvas):
+        canvas.delete("all")
         plt.clf()
         plt.plot(data['x'], data['y'])
         plt.ylim(self.ylimits[0], self.ylimits[1])
@@ -65,7 +77,20 @@ class DataVisualizationApp:
         image = Image.open(buffer)
         tk_image = ImageTk.PhotoImage(image)
         self.chart_image = tk_image
-        self.canvas.create_image(0, 0, anchor=tk.NW, image=self.chart_image)
+        canvas.create_image(0, 0, anchor=tk.NW, image=self.chart_image)
+
+    def count_signals_in_range(self, range:(int,int)) -> int:
+        self.tempData.append((range[0],float((self.data[(self.data['x'] >= range[0]) & (self.data['x'] < range[1])]['x'].count()))/0.05))
+
+    
+    def count_signals_button_callback(self) -> None:
+        self.tempData = []
+        i = self.data.min()[0]
+        while i < self.data.max()[0]:
+            self.count_signals_in_range((i, i+0.05))
+            i = i + 0.05
+        self.tempData = DataFrame(self.tempData, columns=['x', 'y'])
+        self.display_chart(self.tempData, self.secondChart)
 
 def main():
     root = tk.Tk()
