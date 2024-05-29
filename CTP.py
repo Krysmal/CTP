@@ -73,6 +73,8 @@ class DataVisualizationApp:
         plt.title('VRVT190 - indukcyjny')
         plt.tight_layout()
         plt.plot(data['x'], data['y'], color=color)
+        center_x = (data['x'].min() + data['x'].max()) / 2
+        plt.axvline(x=center_x, color='g', linestyle='--', label='Środek')
         plt.ylim(self.ylimits[0], self.ylimits[1])
         plt.savefig(buffer, format="png")
         buffer.seek(0)
