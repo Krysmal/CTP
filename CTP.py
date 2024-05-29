@@ -38,6 +38,8 @@ class DataVisualizationApp:
         self.button_frame = tk.Frame(master)
         self.button_frame.grid(row=0, column=0, sticky='n', pady=10)
         self.button_frame.configure(background='#272640', height=400)
+        
+        self.set_current_color_label_unit('blue','label','[mm]')
 
         self.buttons = []
 
@@ -57,7 +59,7 @@ class DataVisualizationApp:
         self.load_button = MalinButton(root, text="Load Data", command=lambda: (self.load_data(),self.set_current_color_label_unit('blue','Milimeters [mm]','[mm]'),self.display_chart(data=self.data)))
         self.load_button.grid(row=0, column=0, sticky='n', padx=10, pady=10,)
 
-        self.calibrate_button = MalinButton(root, text="Calibrate Sensor", command=lambda: (self.set_current_color_label_unit('blue','Volt [V]','[V]'), self.display_chart(data=copy(self.data), adjustment=1/50)))
+        self.calibrate_button = MalinButton(root, text="Calibrate Sensor", command=lambda: (self.set_current_color_label_unit('blue','Volt [V]','[V]'),self.display_chart(data=copy(self.data), adjustment=1/50)))
         self.calibrate_button.grid(row=1,column=0, sticky='n', padx=10, pady=10,)
 
         self.count_impulses_button = MalinButton(root, text="Count impulses", command=lambda: self.count_signals_button_callback())
@@ -104,10 +106,12 @@ class DataVisualizationApp:
         self.refresh_chart()
 
     def refresh_chart(self):
-        stop_chart_on_call = self.stop_chart
+        stop_chart_init = self.stop_chart
         self.stop_chart = False
         self.update_chart()
-        self.stop_chart = stop_chart_on_call
+        self.stop_chart = stop_chart_init
+
+
 
     def toggle_start(self):
         if self.stop_chart == True:
@@ -129,8 +133,7 @@ class DataVisualizationApp:
         self.buffer = io.BytesIO()
         plt.figure(figsize=(6, 4))
         data['y'] = data['y']*adjustment
-
-
+        self.data_to_send = data
         self.ylimits = (data['y'].min(), data['y'].max() + data['y'].std())
         while True:
             self.update_chart()
@@ -139,10 +142,10 @@ class DataVisualizationApp:
         self.buffer.truncate(0)
         self.buffer.seek(0) 
         if self.stop_chart == False:
-            self.sent_data = self.data[self.index:(self.index + 100)]
-            self.compose_chart(self.sent_data)
+            self.sent_data = copy(self.data_to_send[self.index:(self.index + 100)])
+            self.compose_chart(self.sent_data, self.buffer, self.color, self.y_label, self.unit)
             self.index=self.index+5
-            self.index=self.index%(len(self.data) - 100)
+            self.index=self.index%(len(self.data_to_send) - 100)
         self.canvas.update()
         time.sleep(0.05)
 
@@ -157,25 +160,25 @@ class DataVisualizationApp:
             self.data = pd.read_csv(file_path)
             self.enable_buttons()
 
-    def compose_chart(self, data: DataFrame):
+    def compose_chart(self, data: DataFrame, buffer, color, y_label, unit):
         self.canvas.delete("all")
         plt.clf()
         plt.xlabel('Time [s]')
-        plt.ylabel(self.y_label)
+        plt.ylabel(y_label)
         plt.title('VRVT190 - indukcyjny')
         plt.tight_layout()
-        plt.plot(data['x'], data['y'], color=self.color)
+        plt.plot(data['x'], data['y'], color=color)
         center_x = (data['x'].min() + data['x'].max()) / 2
         plt.axvline(x=center_x, color='g', linestyle='--', label='Środek')
         plt.ylim(self.ylimits[0], self.ylimits[1])
-        plt.savefig(self.buffer, format="png")
-        self.buffer.seek(0)
-        image = Image.open(self.buffer)
+        plt.savefig(buffer, format="png")
+        buffer.seek(0)
+        image = Image.open(buffer)
         tk_image = ImageTk.PhotoImage(image)
         self.chart_image = tk_image
         self.canvas.create_image(0, 0, anchor=tk.NW, image=self.chart_image)
         rounded_value = round(data.iloc[50]['y'], 3)
-        self.updateLabel(f'{rounded_value} {self.unit}')
+        self.updateLabel(f'{rounded_value} {unit}')
 
     def updateLabel(self, new_value: str):
         self.read_value.configure(text=new_value)
@@ -185,6 +188,7 @@ class DataVisualizationApp:
 
     
     def count_signals_button_callback(self) -> None:
+        self.index = 0
         self.tempData = []
         i = self.data.min()[0]
         while i < self.data.max()[0]:
